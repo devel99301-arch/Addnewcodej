@@ -4,10 +4,21 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script>
 (async () => {
-  const LIFF_ID = "2008018878-jzeGKpLW";
-  await liff.init({ liffId: LIFF_ID });
-  const sp = new URL(location.href).searchParams;
-  const msg = decodeURIComponent(sp.get("msg") || "我很聰明");
+  const LIFF_ID = "2008018878-jzeGKpLW"; // 你的 LIFF ID
+  await liff.init({ liffId: LIFF_ID });// 先拿外層查詢參數
+  const url = new URL(location.href);
+  const sp  = url.searchParams;// 先嘗試讀外層的 msg
+  let rawMsg = sp.get("msg");// 如果沒有，解析 LIFF 包進來的 liff.state（裡面才有 ?msg=...）
+  if (!rawMsg) {
+    const state = sp.get("liff.state");
+    if (state) {
+      const inner = new URLSearchParams(state.startsWith("?") ? state.slice(1) : state);
+      rawMsg = inner.get("msg");
+    }
+  }
+  // 預設訊息；再做解碼（避免 null 直接丟給 decodeURIComponent）
+  const msg = decodeURIComponent((rawMsg || "我很聰明"));
+  // 確保在 LINE 內開啟；不是就導回 LINE App
   if (!liff.isInClient()) {
     location.href = "line://app/" + LIFF_ID + location.search;
     return;
