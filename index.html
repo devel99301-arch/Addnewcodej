@@ -4,26 +4,47 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script>
 (async () => {
-  const LIFF_ID = "2008018878-jzeGKpLW"; // 你的 LIFF ID
-  await liff.init({ liffId: LIFF_ID });// 先拿外層查詢參數
+  const LIFF_ID = "2008018878-jzeGKpLW"; // ← 你的 LIFF ID
+
+  await liff.init({ liffId: LIFF_ID });
+
+  // 解析外層參數
   const url = new URL(location.href);
-  const sp  = url.searchParams;// 先嘗試讀外層的 msg
-  let rawMsg = sp.get("msg");// 如果沒有，解析 LIFF 包進來的 liff.state（裡面才有 ?msg=...）
-  if (!rawMsg) {
+  const sp  = url.searchParams;
+
+  // --- 讀取參數（同時支援 ?msg= 與 ?text=） ---
+  // 先讀外層
+  let rawMsg  = sp.get("msg") || sp.get("text");
+  let auto    = sp.get("auto") === "yes";     // 他的方法用 auto=yes 啟動
+  let mtype   = sp.get("type") || "text";     // 先留著（目前只送 text）
+
+  // 若外層沒有，再解 LIFF 的 liff.state（LIFF 會把 ? 後面的東西包進來）
+  if (!rawMsg || sp.has("liff.state")) {
     const state = sp.get("liff.state");
     if (state) {
       const inner = new URLSearchParams(state.startsWith("?") ? state.slice(1) : state);
-      rawMsg = inner.get("msg");
+      rawMsg = rawMsg || inner.get("msg") || inner.get("text");
+      if (!auto) auto  = inner.get("auto") === "yes";
+      if (mtype === "text" && inner.get("type")) mtype = inner.get("type");
     }
   }
-  // 預設訊息；再做解碼（避免 null 直接丟給 decodeURIComponent）
-  const msg = decodeURIComponent((rawMsg || "我很聰明"));
-  // 確保在 LINE 內開啟；不是就導回 LINE App
+
+  // 如果你想：當有 msg/text 時就自動發送，等同 auto=yes
+  if (!auto && rawMsg) auto = true;
+
+  // 預設訊息（避免 null 丟進 decodeURIComponent）
+  const msg = decodeURIComponent(rawMsg || "我很聰明");
+
+  // 必須在 LINE 內開啟，否則導回
   if (!liff.isInClient()) {
     location.href = "line://app/" + LIFF_ID + location.search;
     return;
   }
-  await liff.sendMessages([{ type: "text", text: msg }]);
-  try { liff.closeWindow(); } catch {}
+
+  // 目前只示範文字訊息；之後要擴充圖片、貼圖，可以依 mtype 分流
+  if (auto && mtype === "text") {
+    await liff.sendMessages([{ type: "text", text: msg }]);
+    try { liff.closeWindow(); } catch {}
+  }
 })();
 </script>
