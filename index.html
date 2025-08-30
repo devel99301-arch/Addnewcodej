@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Auto Send</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+(async () => {
+  const LIFF_ID = "YOUR_LIFF_ID";
+  await liff.init({ liffId: LIFF_ID });
+  const sp = new URL(location.href).searchParams;
+  const msg = decodeURIComponent(sp.get("msg") || "我很聰明");
+  if (!liff.isInClient()) {
+    location.href = "line://app/" + LIFF_ID + location.search;
+    return;
+  }
+  await liff.sendMessages([{ type: "text", text: msg }]);
+  try { liff.closeWindow(); } catch {}
+})();
+</script>
