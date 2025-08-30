@@ -1,22 +1,32 @@
 <!doctype html>
 <meta charset="utf-8">
 <title>Auto Send</title>
+<div id="log" style="font:14px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial;">
+  初始化中…
+</div>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script>
 (async () => {
-  const LIFF_ID = "2008018878-jzeGKpLW";  // << 👈 換成你的
-  await liff.init({ liffId: LIFF_ID });
-  const sp = new URL(location.href).searchParams;
-  const msg = decodeURIComponent(sp.get("msg") || "我很聰明");
+  const log = (...a) => (document.getElementById('log').innerText = a.join(' '));
+  try {
+    const LIFF_ID = "2008018878-jzeGKpLW"; // ← 確認大小寫完全一致
+    log("LIFF init…");
+    await liff.init({ liffId: LIFF_ID });
 
-  // 若不是從 LINE 裡開，就導回 LINE 開啟
-  if (!liff.isInClient()) {
-    location.href = "line://app/" + LIFF_ID + location.search;
-    return;
+    if (!liff.isInClient()) {
+      log("不在 LINE 內，導回 LINE 開啟…");
+      location.href = "line://app/" + LIFF_ID + location.search;
+      return;
+    }
+
+    const sp = new URL(location.href).searchParams;
+    const msg = decodeURIComponent(sp.get("msg") || "我很聰明");
+    log("送訊息中：", msg);
+    await liff.sendMessages([{ type: "text", text: msg }]);
+    log("已送出，關閉視窗");
+    try { liff.closeWindow(); } catch {}
+  } catch (e) {
+    log("錯誤：", e && (e.message || e));
   }
-
-  // 發訊息
-  await liff.sendMessages([{ type: "text", text: msg }]);
-  try { liff.closeWindow(); } catch {}
 })();
 </script>
